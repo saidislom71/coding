@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Poliklinika Navbat Tizimi</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Poliklinika Navbat Tizimi</h1>
+
+<div class="container">
+    <h2>Navbatga olish</h2>
+    <form id="addForm" class="form-group">
+        <div class="dropdown-card">
+            <label for="section">Bo‘lim</label>
+            <select id="section" required></select>
+        </div>
+
+        <div class="dropdown-card">
+            <label for="gender">Gender</label>
+            <select id="gender" required></select>
+        </div>
+
+        <div class="dropdown-card">
+            <label for="doctor">Shifokor</label>
+            <select id="doctor" required></select>
+        </div>
+
+        <button type="submit">Navbat olish</button>
+    </form>
+
+    <h2>Navbatlar soni</h2>
+    <ul id="queueList"></ul>
+
+    <h2>Chekingiz</h2>
+    <p id="ticket">Navbat raqamingiz: -</p>
+</div>
+
+<script>
+// Backend API
+const API_URL = 'http://localhost:3000/api/queue';
+const SECTION_URL = 'http://localhost:3000/api/sections';
+const sectionSelect = document.getElementById('section');
+const genderSelect = document.getElementById('gender');
+const doctorSelect = document.getElementById('doctor');
+const queueList = document.getElementById('queueList');
+const addForm = document.getElementById('addForm');
+const ticket = document.getElementById('ticket');
+
+// Load sections
+async function loadSections() {
+    const res = await fetch(SECTION_URL);
+    const data = await res.json();
+    sectionSelect.innerHTML = '';
+    data.forEach(sec => {
+        const option = document.createElement('option');
+        option.value = sec;
+        option.textContent = sec;
+        sectionSelect.appendChild(option);
+    });
+    loadGenders();
+}
+
+// Load genders
+async function loadGenders() {
+    const section = sectionSelect.value;
+    const res = await fetch(`http://localhost:3000/api/genders/${section}`);
+    const data = await res.json();
+    genderSelect.innerHTML = '';
+    data.forEach(g => {
+        const option = document.createElement('option');
+        option.value = g;
+        option.textContent = g;
+        genderSelect.appendChild(option);
+    });
+    loadDoctors();
+}
+
+// Load doctors
+async function loadDoctors() {
+    const section = sectionSelect.value;
+    const gender = genderSelect.value;
+    const res = await fetch(`http://localhost:3000/api/doctors/${section}/${gender}`);
+    const data = await res.json();
+    doctorSelect.innerHTML = '';
+    data.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc;
+        option.textContent = doc;
+        doctorSelect.appendChild(option);
+    });
+}
+
+// Fetch queue counts
+async function fetchQueueCounts() {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    queueList.innerHTML = '';
+    for (const doc in data) {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${doc}</span>: ${data[doc]} navbat`;
+        queueList.appendChild(li);
+    }
+}
+
+// Submit form
+addForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const doctor = doctorSelect.value;
+    const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctor })
+    });
+    const data = await res.json();
+    ticket.textContent = `Navbat raqamingiz: ${data.queueNumber} (${data.doctor})`;
+    fetchQueueCounts();
+}
+
+// Event listeners
+sectionSelect.addEventListener('change', loadGenders);
+genderSelect.addEventListener('change', loadDoctors);
+
+// Initial load
+loadSections();
+fetchQueueCounts();
+</script>
+</body>
+</html>
+ 
